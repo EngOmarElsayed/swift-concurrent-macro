@@ -4,7 +4,7 @@
 
 ![Swift 6.2+](https://img.shields.io/badge/Swift-6.2+-orange.svg)
 ![Platforms](https://img.shields.io/badge/Platforms-iOS%20|%20macOS%20|%20tvOS%20|%20watchOS%20|%20Linux-blue.svg)
-![License](https://img.shields.io/badge/License-MIT-lightgrey.svg)
+![License](https://img.shields.io/badge/License-MIT-green.svg)
 
 Add `@Concurrent` to a type, and every `async` method inside it gets the `@concurrent` attribute. No more annotating methods one by one, no more silently blocking the main actor because you forgot one.
 
@@ -138,7 +138,7 @@ If that describes the whole type, annotate the type. If it describes one method,
 
 This started as a [Swift Evolution pitch](https://forums.swift.org/t/pitch-concurrent-macro/87978). The feedback nudged it toward the package-first route — prove it in the ecosystem, evolve it freely, and maybe revisit stdlib inclusion later. So here we are.
 
-If you want the full deep-dive on SE-0461 and why nonisolated async functions changed behavior, I wrote about Swift concurrency topics over at [swiftdifferently.com](https://swiftdifferently.com).
+Want to go deeper into Swift concurrency? I write full deep-dives on exactly these topics at swiftdifferently.com.
 
 ## Contributing
 
@@ -150,4 +150,4 @@ swift-concurrent-macro is available under the MIT license. See [LICENSE](LICENSE
 
 ---
 
-Made with ☕️ by [Omar Elsayed](https://swiftdifferently.com) — well, metaphorical coffee. I quit years ago, but the analogy database hasn't been updated yet.
+Made with ❤️ by [Omar Elsayed](https://swiftdifferently.com/about).
