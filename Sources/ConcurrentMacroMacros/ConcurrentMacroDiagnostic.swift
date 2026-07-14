@@ -17,7 +17,7 @@ enum ConcurrentMacroDiagnostic: String, DiagnosticMessage {
         case .appliedToActor:
             "'@Concurrent' cannot be applied to an actor; actor methods are isolated to the actor and '@concurrent' shouldn't be applied"
         case .concurrentAlreadyAdded:
-            "@concurrent is already added on this method; it's already added using '@Concurrent'"
+            "'@concurrent' is redundant here; '@Concurrent' on the enclosing type already applies it to this method"
         }
     }
 

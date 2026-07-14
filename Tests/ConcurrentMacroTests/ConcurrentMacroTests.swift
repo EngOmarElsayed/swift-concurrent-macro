@@ -9,19 +9,30 @@ import XCTest
 import ConcurrentMacroMacros
 
 let testMacros: [String: Macro.Type] = [
-    "stringify": StringifyMacro.self,
+    "Concurrent": ConcurrentMacro.self,
 ]
 #endif
 
 final class ConcurrentMacroTests: XCTestCase {
-    func testMacro() throws {
+
+    // MARK: - Adding @concurrent
+
+    func testAddsConcurrentToAsyncMethodInClass() throws {
         #if canImport(ConcurrentMacroMacros)
         assertMacroExpansion(
             """
-            #stringify(a + b)
+            @Concurrent
+            class Service {
+                func fetch() async {
+                }
+            }
             """,
             expandedSource: """
-            (a + b, "a + b")
+            class Service {
+                @concurrent
+                func fetch() async {
+                }
+            }
             """,
             macros: testMacros
         )
@@ -30,15 +41,252 @@ final class ConcurrentMacroTests: XCTestCase {
         #endif
     }
 
-    func testMacroWithStringLiteral() throws {
+    func testAddsConcurrentToAsyncMethodInStruct() throws {
         #if canImport(ConcurrentMacroMacros)
         assertMacroExpansion(
-            #"""
-            #stringify("Hello, \(name)")
-            """#,
-            expandedSource: #"""
-            ("Hello, \(name)", #""Hello, \(name)""#)
-            """#,
+            """
+            @Concurrent
+            struct Service {
+                func fetch() async {
+                }
+            }
+            """,
+            expandedSource: """
+            struct Service {
+                @concurrent
+                func fetch() async {
+                }
+            }
+            """,
+            macros: testMacros
+        )
+        #else
+        throw XCTSkip("macros are only supported when running tests for the host platform")
+        #endif
+    }
+
+    func testAddsConcurrentToAsyncMethodInEnum() throws {
+        #if canImport(ConcurrentMacroMacros)
+        assertMacroExpansion(
+            """
+            @Concurrent
+            enum Service {
+                static func fetch() async {
+                }
+            }
+            """,
+            expandedSource: """
+            enum Service {
+                @concurrent
+                static func fetch() async {
+                }
+            }
+            """,
+            macros: testMacros
+        )
+        #else
+        throw XCTSkip("macros are only supported when running tests for the host platform")
+        #endif
+    }
+
+    func testAddsConcurrentToAsyncThrowsMethod() throws {
+        #if canImport(ConcurrentMacroMacros)
+        assertMacroExpansion(
+            """
+            @Concurrent
+            class Service {
+                func fetch() async throws -> String {
+                    ""
+                }
+            }
+            """,
+            expandedSource: """
+            class Service {
+                @concurrent
+                func fetch() async throws -> String {
+                    ""
+                }
+            }
+            """,
+            macros: testMacros
+        )
+        #else
+        throw XCTSkip("macros are only supported when running tests for the host platform")
+        #endif
+    }
+
+    func testOnlyAsyncMethodsGetConcurrentInMixedType() throws {
+        #if canImport(ConcurrentMacroMacros)
+        assertMacroExpansion(
+            """
+            @Concurrent
+            class Service {
+                var count = 0
+
+                func sync() {
+                }
+
+                func fetch() async {
+                }
+            }
+            """,
+            expandedSource: """
+            class Service {
+                var count = 0
+
+                func sync() {
+                }
+                @concurrent
+
+                func fetch() async {
+                }
+            }
+            """,
+            macros: testMacros
+        )
+        #else
+        throw XCTSkip("macros are only supported when running tests for the host platform")
+        #endif
+    }
+
+    // MARK: - Members left untouched
+
+    func testDoesNotAddConcurrentToNonAsyncMethod() throws {
+        #if canImport(ConcurrentMacroMacros)
+        assertMacroExpansion(
+            """
+            @Concurrent
+            class Service {
+                func compute() -> Int {
+                    0
+                }
+            }
+            """,
+            expandedSource: """
+            class Service {
+                func compute() -> Int {
+                    0
+                }
+            }
+            """,
+            macros: testMacros
+        )
+        #else
+        throw XCTSkip("macros are only supported when running tests for the host platform")
+        #endif
+    }
+
+    func testDoesNotAddConcurrentToNonisolatedAsyncMethod() throws {
+        #if canImport(ConcurrentMacroMacros)
+        assertMacroExpansion(
+            """
+            @Concurrent
+            class Service {
+                nonisolated func fetch() async {
+                }
+            }
+            """,
+            expandedSource: """
+            class Service {
+                nonisolated func fetch() async {
+                }
+            }
+            """,
+            macros: testMacros
+        )
+        #else
+        throw XCTSkip("macros are only supported when running tests for the host platform")
+        #endif
+    }
+
+    func testDoesNotAnnotateStoredProperties() throws {
+        #if canImport(ConcurrentMacroMacros)
+        assertMacroExpansion(
+            """
+            @Concurrent
+            class Service {
+                var count = 0
+            }
+            """,
+            expandedSource: """
+            class Service {
+                var count = 0
+            }
+            """,
+            macros: testMacros
+        )
+        #else
+        throw XCTSkip("macros are only supported when running tests for the host platform")
+        #endif
+    }
+
+    // MARK: - Actor diagnostic
+
+    func testAppliedToActorEmitsErrorAndAddsNothing() throws {
+        #if canImport(ConcurrentMacroMacros)
+        assertMacroExpansion(
+            """
+            @Concurrent
+            actor Worker {
+                func fetch() async {
+                }
+            }
+            """,
+            expandedSource: """
+            actor Worker {
+                func fetch() async {
+                }
+            }
+            """,
+            diagnostics: [
+                DiagnosticSpec(
+                    message: "'@Concurrent' cannot be applied to an actor; actor methods are isolated to the actor and '@concurrent' shouldn't be applied",
+                    line: 1,
+                    column: 1,
+                    severity: .error,
+                    fixIts: [
+                        FixItSpec(message: "Remove '@Concurrent'")
+                    ]
+                )
+            ],
+            macros: testMacros
+        )
+        #else
+        throw XCTSkip("macros are only supported when running tests for the host platform")
+        #endif
+    }
+
+    // MARK: - Redundant @concurrent diagnostic
+
+    func testExistingConcurrentAnnotationEmitsWarningAndAddsNothing() throws {
+        #if canImport(ConcurrentMacroMacros)
+        assertMacroExpansion(
+            """
+            @Concurrent
+            class Service {
+                @concurrent
+                func fetch() async {
+                }
+            }
+            """,
+            expandedSource: """
+            class Service {
+                @concurrent
+                func fetch() async {
+                }
+            }
+            """,
+            diagnostics: [
+                DiagnosticSpec(
+                    message: "'@concurrent' is redundant here; '@Concurrent' on the enclosing type already applies it to this method",
+                    line: 3,
+                    column: 5,
+                    severity: .warning,
+                    fixIts: [
+                        FixItSpec(message: "Remove '@concurrent' annotation")
+                    ]
+                )
+            ],
             macros: testMacros
         )
         #else
