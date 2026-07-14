@@ -1,33 +1,89 @@
-import SwiftCompilerPlugin
+//
+//  ConcurrentMacroMacro.swift
+//  ConcurrentMacro
+//
+//  Created by Omar Elsayed on 13/07/2026.
+//
+
+import SwiftDiagnostics
 import SwiftSyntax
 import SwiftSyntaxBuilder
 import SwiftSyntaxMacros
 
-/// Implementation of the `stringify` macro, which takes an expression
-/// of any type and produces a tuple containing the value of that expression
-/// and the source code that produced the value. For example
-///
-///     #stringify(x + y)
-///
-///  will expand to
-///
-///     (x + y, "x + y")
-public struct StringifyMacro: ExpressionMacro {
+public struct ConcurrentMacro: MemberAttributeMacro {
     public static func expansion(
-        of node: some FreestandingMacroExpansionSyntax,
-        in context: some MacroExpansionContext
-    ) -> ExprSyntax {
-        guard let argument = node.arguments.first?.expression else {
-            fatalError("compiler bug: the macro does not have any arguments")
+        of node: SwiftSyntax.AttributeSyntax,
+        attachedTo declaration: some SwiftSyntax.DeclGroupSyntax,
+        providingAttributesFor member: some SwiftSyntax.DeclSyntaxProtocol,
+        in context: some SwiftSyntaxMacros.MacroExpansionContext
+    ) throws -> [SwiftSyntax.AttributeSyntax] {
+        guard !declaration.is(ActorDeclSyntax.self) else {
+            return generateErrorDiagnostic(
+                for: node,
+                declaration: declaration,
+                message: ConcurrentMacroDiagnostic.appliedToActor,
+                in: context
+            )
+        }
+        guard let funcDec = member.as(FunctionDeclSyntax.self) else { return [] }
+        guard funcDec.signature.effectSpecifiers?.asyncSpecifier != nil else { return [] }
+        guard !funcDec.hasModifier(named: "nonisolated") else { return [] }
+        guard !funcDec.hasAttribute(named: "concurrent") else {
+            return generateConcurrentAnnotationWaring(
+                funcDec: funcDec,
+                in: context
+            )
         }
 
-        return "(\(argument), \(literal: argument.description))"
+
+        return ["@concurrent"]
     }
 }
 
-@main
-struct ConcurrentMacroPlugin: CompilerPlugin {
-    let providingMacros: [Macro.Type] = [
-        StringifyMacro.self,
-    ]
+// MARK: - Private Methods
+private extension ConcurrentMacro {
+    static func generateErrorDiagnostic(
+        for node: SwiftSyntax.AttributeSyntax,
+        declaration: some SwiftSyntax.DeclGroupSyntax,
+        message: DiagnosticMessage,
+        in context: some SwiftSyntaxMacros.MacroExpansionContext
+    ) -> [SwiftSyntax.AttributeSyntax] {
+        let newAttributes = declaration.attributes.filter { $0.as(AttributeSyntax.self)?.attributeName.trimmedDescription != "Concurrent" }
+
+        context.diagnose(Diagnostic(
+            node: node,
+            message: message,
+            fixIt: FixIt(
+                message: ConcurrentMacroFixIt.removeAttribute,
+                changes: [.replace(
+                    oldNode: Syntax(declaration.attributes),
+                    newNode: Syntax(newAttributes)
+                )]
+            )
+        ))
+
+        return []
+    }
+
+    static func generateConcurrentAnnotationWaring(
+        funcDec: FunctionDeclSyntax,
+        in context: some SwiftSyntaxMacros.MacroExpansionContext
+    ) -> [SwiftSyntax.AttributeSyntax] {
+        if let node = funcDec.attributeNode(named: "concurrent") {
+            let cleanedAttributes = funcDec.removeAttribute(named: "concurrent")
+            context.diagnose(Diagnostic(
+                node: node,
+                message: ConcurrentMacroDiagnostic.concurrentAlreadyAdded,
+                fixIt: FixIt(
+                    message: ConcurrentMacroFixIt.removeExtraConcurrentAnnotation,
+                    changes: [.replace(
+                        oldNode: Syntax(funcDec.attributes),
+                        newNode: Syntax(cleanedAttributes)
+                    )]
+                )
+            ))
+        }
+
+        return []
+    }
 }
