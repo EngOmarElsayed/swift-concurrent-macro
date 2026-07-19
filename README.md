@@ -1,7 +1,8 @@
 # swift-concurrent-macro
 
 **A Swift macro that keeps your heavy work off the main actor — automatically.**
-
+[![](https://img.shields.io/endpoint?url=https%3A%2F%2Fswiftpackageindex.com%2Fapi%2Fpackages%2FEngOmarElsayed%2Fswift-concurrent-macro%2Fbadge%3Ftype%3Dplatforms)](https://swiftpackageindex.com/EngOmarElsayed/swift-concurrent-macro)
+[![](https://img.shields.io/endpoint?url=https%3A%2F%2Fswiftpackageindex.com%2Fapi%2Fpackages%2FEngOmarElsayed%2Fswift-concurrent-macro%2Fbadge%3Ftype%3Dswift-versions)](https://swiftpackageindex.com/EngOmarElsayed/swift-concurrent-macro)
 ![Swift 6.2+](https://img.shields.io/badge/Swift-6.2+-orange.svg)
 ![Platforms](https://img.shields.io/badge/Platforms-iOS%20|%20macOS%20|%20tvOS%20|%20watchOS%20|%20Linux-blue.svg)
 ![License](https://img.shields.io/badge/License-MIT-green.svg)
